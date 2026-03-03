@@ -28,9 +28,16 @@ const connectDB = async () => {
     if (cachedClient && usersCollection) {
         return usersCollection;
     }
-    if (!MONGO_URI) {
-        throw new Error('MONGO_URI environment variable is not set.');
+    if (!MONGO_URI || MONGO_URI === 'undefined' || MONGO_URI === 'null') {
+        throw new Error('MONGO_URI environment variable is missing or literally "undefined" in Netlify settings.');
     }
+
+    // Explicit scheme check to throw a much clearer error
+    if (!MONGO_URI.startsWith('mongodb://') && !MONGO_URI.startsWith('mongodb+srv://')) {
+        const prefix = MONGO_URI.substring(0, 15);
+        throw new Error(`The MONGO_URI in Netlify has an invalid start value: "${prefix}...". It MUST start with "mongodb://" or "mongodb+srv://". Did you make a typo?`);
+    }
+
     const client = new MongoClient(MONGO_URI, {
         serverSelectionTimeoutMS: 5000,
     });
