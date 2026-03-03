@@ -86,7 +86,7 @@ const Step1Start: React.FC<Step1StartProps> = ({ onNext, setHairProfileData, hai
     if (Object.values(newErrors).every(e => e === '')) {
       setIsSubmitting(true);
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+        const response = await fetch('/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
@@ -102,7 +102,7 @@ const Step1Start: React.FC<Step1StartProps> = ({ onNext, setHairProfileData, hai
         }
       } catch (error) {
         console.error('Error saving user:', error);
-        setErrors(prev => ({ ...prev, name: 'Failed to save. Check if backend is running.' }));
+        setErrors(prev => ({ ...prev, name: 'Failed to connect to server. Please try again.' }));
       } finally {
         setIsSubmitting(false);
       }
