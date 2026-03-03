@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, GenerateContentResponse, Type, GenerateContentParameters } from "@google/genai";
 import { HairProfileData, SkinConditionCategory, SkincareRoutine } from '../types';
 import { DERMATICS_INDIA_PRODUCTS } from "../productData";
@@ -6,35 +5,40 @@ import { DERMATICS_INDIA_PRODUCTS } from "../productData";
 const importMetaEnv = typeof import.meta !== 'undefined' ? (import.meta.env as Record<string, string | undefined>) : undefined;
 const processEnv = typeof process !== 'undefined' ? process.env : undefined;
 
-const rawApiKeys = (importMetaEnv?.VITE_API_KEY as string | undefined)
-    ?? processEnv?.API_KEY
-    ?? processEnv?.VITE_API_KEY;
+const getRawApiKeys = (): string => {
+    const rawApiKeys = (importMetaEnv?.VITE_API_KEY as string | undefined)
+        ?? importMetaEnv?.GEMINI_API_KEY
+        ?? processEnv?.GEMINI_API_KEY
+        ?? processEnv?.API_KEY
+        ?? processEnv?.VITE_API_KEY;
 
-if (!rawApiKeys) {
-    throw new Error("API key environment variable is not set. Define VITE_API_KEY or API_KEY.");
-}
+    if (!rawApiKeys) {
+        throw new Error("API key environment variable is not set. Please set GEMINI_API_KEY in Netlify environment variables.");
+    }
+    return rawApiKeys;
+};
 
-const apiKeys = rawApiKeys.split(',')
-    .map(key => key.trim())
-    .filter(key => key);
-
-if (apiKeys.length === 0) {
-    throw new Error("API key environment variable is set, but contains no valid keys.");
-}
-
-const aiInstances = apiKeys.map(apiKey => new GoogleGenAI({ apiKey }));
+const getAiInstances = () => {
+    const rawApiKeys = getRawApiKeys();
+    const apiKeys = rawApiKeys.split(',').map(key => key.trim()).filter(key => key);
+    if (apiKeys.length === 0) {
+        throw new Error("API key environment variable is set, but contains no valid keys.");
+    }
+    return apiKeys.map(apiKey => new GoogleGenAI({ apiKey }));
+};
 
 async function generateContentWithFailover(params: GenerateContentParameters): Promise<GenerateContentResponse> {
     let lastError: Error | null = null;
+    const instances = getAiInstances();
 
-    for (let i = 0; i < aiInstances.length; i++) {
-        const ai = aiInstances[i];
+    for (let i = 0; i < instances.length; i++) {
+        const ai = instances[i];
         try {
             const response = await ai.models.generateContent(params);
             return response;
         } catch (error) {
             lastError = error as Error;
-            console.warn(`API key ${i + 1}/${aiInstances.length} failed: ${lastError.message}`);
+            console.warn(`API key ${i + 1}/${instances.length} failed: ${lastError.message}`);
 
             const errorMessage = lastError.message.toLowerCase();
             const isRetriable =
@@ -50,7 +54,7 @@ async function generateContentWithFailover(params: GenerateContentParameters): P
         }
     }
 
-    throw new Error(`All ${aiInstances.length} API keys failed. Last error: ${lastError?.message || 'Unknown error'}`);
+    throw new Error(`All ${instances.length} API keys failed. Last error: ${lastError?.message || 'Unknown error'}`);
 }
 
 
