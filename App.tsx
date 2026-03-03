@@ -28,6 +28,32 @@ const App: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [pastUserHistory, setPastUserHistory] = useState<any[]>([]);
+
+  const saveFullUserProfile = useCallback(async (
+    rec: SkincareRoutine | null,
+    title: string,
+    chat: ChatMessage[] = []
+  ) => {
+    if (!userId) return;
+    try {
+      await fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hairProfileData,
+          analysisResult,
+          haircareGoals,
+          recommendation: rec,
+          routineTitle: title,
+          chatHistory: chat
+        })
+      });
+    } catch (error) {
+      console.error('Error saving full profile:', error);
+    }
+  }, [userId, hairProfileData, analysisResult, haircareGoals]);
 
   const handleNextStep = () => setStep(prev => prev + 1);
   const handlePrevStep = () => setStep(prev => prev - 1);
@@ -78,7 +104,7 @@ const App: React.FC = () => {
           cartMap.set(newItem.productId, newItem);
         }
       });
-      
+
       return newCart;
     });
   };
@@ -86,7 +112,7 @@ const App: React.FC = () => {
   const handleRemoveFromCart = (productId: string) => {
     setCart(prevCart => prevCart.filter(item => item.productId !== productId));
   };
-  
+
   const handleUpdateQuantity = (productId: string, quantity: number) => {
     if (quantity <= 0) {
       handleRemoveFromCart(productId);
@@ -103,20 +129,22 @@ const App: React.FC = () => {
     switch (step) {
       case 1:
         return (
-            <Step1Start
-                onNext={handleNextStep}
-                setHairProfileData={setHairProfileData}
-                hairProfileData={hairProfileData}
-            />
+          <Step1Start
+            onNext={handleNextStep}
+            setHairProfileData={setHairProfileData}
+            hairProfileData={hairProfileData}
+            setUserId={setUserId}
+            setPastUserHistory={setPastUserHistory}
+          />
         );
       case 2:
         return (
-            <Step2UserInfo
-                onNext={handleNextStep}
-                onBack={handlePrevStep}
-                hairProfileData={hairProfileData}
-                setHairProfileData={setHairProfileData}
-            />
+          <Step2UserInfo
+            onNext={handleNextStep}
+            onBack={handlePrevStep}
+            hairProfileData={hairProfileData}
+            setHairProfileData={setHairProfileData}
+          />
         );
       case 3:
         return (
@@ -153,6 +181,7 @@ const App: React.FC = () => {
             setStep={setStep}
             setIsLoading={setIsLoading}
             isLoading={isLoading}
+            saveFullUserProfile={saveFullUserProfile}
           />
         );
       case 6:
@@ -185,15 +214,15 @@ const App: React.FC = () => {
         );
       case 8:
         return (
-            <ChatbotPage
-                analysisResult={analysisResult}
-                haircareGoals={haircareGoals}
-                recommendation={recommendation}
-                chatHistory={chatHistory}
-                setChatHistory={setChatHistory}
-                onBack={handlePrevStep}
-                onReset={resetState}
-            />
+          <ChatbotPage
+            analysisResult={analysisResult}
+            haircareGoals={haircareGoals}
+            recommendation={recommendation}
+            chatHistory={chatHistory}
+            setChatHistory={setChatHistory}
+            onBack={handlePrevStep}
+            onReset={resetState}
+          />
         );
       default:
         return <p>Invalid Step</p>;
@@ -204,32 +233,32 @@ const App: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen flex flex-col">
-        {/* Mobile Header */}
-        <Header
-            onMenuClick={() => setIsMobileMenuOpen(true)}
-            cartItemCount={totalCartItems}
-            onCartClick={() => setIsCartOpen(true)}
-            className="lg:hidden"
-        />
-        {/* Desktop Header */}
-        <TopHeader
-            cartItemCount={totalCartItems}
-            onCartClick={() => setIsCartOpen(true)}
-            className="hidden lg:flex mx-auto mt-4"
-        />
+      {/* Mobile Header */}
+      <Header
+        onMenuClick={() => setIsMobileMenuOpen(true)}
+        cartItemCount={totalCartItems}
+        onCartClick={() => setIsCartOpen(true)}
+        className="lg:hidden"
+      />
+      {/* Desktop Header */}
+      <TopHeader
+        cartItemCount={totalCartItems}
+        onCartClick={() => setIsCartOpen(true)}
+        className="hidden lg:flex mx-auto mt-4"
+      />
       <div className="w-full max-w-screen-2xl mx-auto flex-grow grid grid-cols-1 lg:grid-cols-[300px_1fr] lg:gap-8 lg:mt-4">
         <div className="hidden lg:block">
-            <Sidebar
-                currentStep={step}
-                onReset={resetState}
-            />
+          <Sidebar
+            currentStep={step}
+            onReset={resetState}
+          />
         </div>
         <main className="flex flex-col h-full">
-            {renderStep()}
+          {renderStep()}
         </main>
       </div>
 
-       <Step1PastProducts
+      <Step1PastProducts
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         currentStep={step}
