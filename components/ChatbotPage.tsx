@@ -12,6 +12,7 @@ interface ChatbotPageProps {
   recommendation: SkincareRoutine | null;
   chatHistory: ChatMessage[];
   setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
+  pastUserHistory?: any[];
 }
 
 const ChatbotPage: React.FC<ChatbotPageProps> = ({
@@ -22,28 +23,30 @@ const ChatbotPage: React.FC<ChatbotPageProps> = ({
   recommendation,
   chatHistory,
   setChatHistory,
+  pastUserHistory,
 }) => {
   return (
     <div className="animate-fade-in-up flex flex-col w-full h-full bg-white rounded-2xl border-2 border-slate-300">
       <div className="flex-grow overflow-y-auto flex flex-col p-6 sm:p-8 lg:p-10">
-          <div className="flex-shrink-0">
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">
-              AI Assistant
-            </h2>
-            <p className="text-base text-slate-600 mb-6">
-              Ask questions about your plan.
-            </p>
-          </div>
+        <div className="flex-shrink-0">
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">
+            AI Assistant
+          </h2>
+          <p className="text-base text-slate-600 mb-6">
+            Ask questions about your plan.
+          </p>
+        </div>
 
-          <div className="flex-grow min-h-0">
-            <Chatbot
-              analysisResult={analysisResult}
-              haircareGoals={haircareGoals}
-              recommendation={recommendation}
-              chatHistory={chatHistory}
-              setChatHistory={setChatHistory}
-            />
-          </div>
+        <div className="flex-grow min-h-0">
+          <Chatbot
+            analysisResult={analysisResult}
+            haircareGoals={haircareGoals}
+            recommendation={recommendation}
+            chatHistory={chatHistory}
+            setChatHistory={setChatHistory}
+            pastUserHistory={pastUserHistory}
+          />
+        </div>
       </div>
 
 
@@ -53,7 +56,7 @@ const ChatbotPage: React.FC<ChatbotPageProps> = ({
           Previous
         </Button>
         <Button onClick={onReset} variant="primary" size="md" className="gap-2 bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700">
-          <RefreshCw className="w-4 h-4"/>
+          <RefreshCw className="w-4 h-4" />
           Start Over
         </Button>
       </div>
