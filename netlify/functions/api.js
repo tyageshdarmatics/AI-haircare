@@ -15,7 +15,9 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 // MongoDB Atlas connection
-const MONGO_URI = process.env.MONGO_URI;
+// Added .trim() and stripped surrounding quotes in case they were accidentally included in the Netlify dashboard
+const rawUri = process.env.MONGO_URI || '';
+const MONGO_URI = rawUri.trim().replace(/^["']|["']$/g, '');
 const DB_NAME = 'skincare-haircare-database';
 const COLLECTION_NAME = 'users';
 
