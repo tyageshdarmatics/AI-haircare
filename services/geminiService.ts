@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, GenerateContentResponse, Type, GenerateContentParameters } from "@google/genai";
 import { HairProfileData, SkinConditionCategory, SkincareRoutine } from '../types';
 import { DERMATICS_INDIA_PRODUCTS } from "../productData";
@@ -216,7 +217,8 @@ Provide the output strictly in JSON format according to the provided schema. Be 
 export const generateRoutine = async (
     hairProfile: Partial<HairProfileData>,
     analysis: SkinConditionCategory[],
-    goals: string[]
+    goals: string[],
+    pastUserHistory: any[] = []
 ): Promise<{ recommendation: SkincareRoutine, title: string }> => {
 
     const analysisString = analysis.map(cat =>
@@ -253,6 +255,7 @@ export const generateRoutine = async (
         - **AI Analysis:** ${analysisString || 'Not provided.'}
         - **Questionnaire Profile:** ${JSON.stringify(hairProfile, null, 2)}
         - **Goals:** ${goalsString}
+        - **Past User History:** ${pastUserHistory.length > 0 ? JSON.stringify(pastUserHistory, null, 2) : 'No past history available.'}
 
         **Dermatics India Product Catalog:**
         ${productCatalogString}
@@ -260,7 +263,7 @@ export const generateRoutine = async (
         **YOUR TASK (Follow these steps precisely):**
 
         **STEP 1: Synthesize a Clinical Summary.**
-        Based on all user data, write a brief, internal summary of the user's condition.
+        Based on all user data (especially including their Past User History if it exists to understand how their condition has evolved over time), write a brief, internal summary of the user's condition.
         *Example:* "User presents with moderate androgenetic alopecia on the crown (95% confidence) and reports high stress, which may exacerbate hair shedding. Goal is to reduce hair fall."
 
         **STEP 2: Devise a Treatment Strategy.**
