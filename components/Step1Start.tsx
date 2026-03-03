@@ -9,9 +9,11 @@ interface Step1StartProps {
   onNext: () => void;
   setHairProfileData: React.Dispatch<React.SetStateAction<Partial<HairProfileData>>>;
   hairProfileData: Partial<HairProfileData>;
+  setUserId?: React.Dispatch<React.SetStateAction<string | null>>;
+  setPastUserHistory?: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
-const Step1Start: React.FC<Step1StartProps> = ({ onNext, setHairProfileData, hairProfileData }) => {
+const Step1Start: React.FC<Step1StartProps> = ({ onNext, setHairProfileData, hairProfileData, setUserId, setPastUserHistory }) => {
   const [formData, setFormData] = useState({
     name: hairProfileData.name || '',
     email: hairProfileData.email || '',
@@ -96,9 +98,13 @@ const Step1Start: React.FC<Step1StartProps> = ({ onNext, setHairProfileData, hai
 
         if (data.success) {
           setHairProfileData(prev => ({ ...prev, ...formData }));
+          if (setUserId) setUserId(data.id);
+          if (setPastUserHistory && data.isReturning && data.history) {
+            setPastUserHistory(data.history);
+          }
           onNext();
         } else {
-          setErrors(prev => ({ ...prev, name: data.error || 'Error saving data' }));
+          setErrors(prev => ({ ...prev, email: data.error || 'Error saving data' }));
         }
       } catch (error) {
         console.error('Error saving user:', error);
