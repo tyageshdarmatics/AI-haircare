@@ -1,5 +1,5 @@
 import express from 'express';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import cors from 'cors';
 import serverless from 'serverless-http';
 
@@ -45,6 +45,15 @@ const connectDB = async () => {
     const db = client.db(DB_NAME);
     cachedClient = client;
     usersCollection = db.collection(COLLECTION_NAME);
+
+    // Enforce uniqueness constraints at the DB level
+    try {
+        await usersCollection.createIndex({ email: 1 }, { unique: true });
+        await usersCollection.createIndex({ phone: 1 }, { unique: true });
+    } catch (indexErr) {
+        console.log("Indexes might already exist or failed:", indexErr.message);
+    }
+
     console.log(`✅ MongoDB connected! DB: ${DB_NAME}, Collection: ${COLLECTION_NAME}`);
     return usersCollection;
 };
@@ -62,15 +71,39 @@ app.post('/api/users', async (req, res) => {
         }
 
         const collection = await connectDB();
+
+        // 1. Check for duplicates / Authentication
+        const existingUser = await collection.findOne({
+            $or: [{ email }, { phone }]
+        });
+
+        if (existingUser) {
+            // Ensure full match for returning user (Authentication Simulation)
+            if (existingUser.name === name && existingUser.age === parseInt(age, 10)) {
+                return res.json({
+                    success: true,
+                    id: existingUser._id,
+                    isReturning: true,
+                    message: "Welcome back!",
+                    history: existingUser.history || []
+                });
+            } else {
+                // Different identity with same phone/email
+                return res.status(400).json({ error: 'This mobile number or email ID is already registered.' });
+            }
+        }
+
+        // 2. Insert new user
         const result = await collection.insertOne({
             name,
             email,
             phone,
             age: parseInt(age, 10),
             createdAt: new Date(),
+            history: [] // Init empty historical data
         });
 
-        res.json({ success: true, id: result.insertedId });
+        res.json({ success: true, id: result.insertedId, isReturning: false, history: [] });
     } catch (error) {
         console.error('Error saving user:', error);
         res.status(500).json({ error: error.message });
@@ -84,6 +117,43 @@ app.get('/api/users', async (req, res) => {
         res.json(users);
     } catch (error) {
         console.error('Error fetching users:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Store full session data at the end of the user flow
+app.put('/api/users/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const sessionData = req.body;
+
+        if (!id) {
+            return res.status(400).json({ error: 'User ID is required.' });
+        }
+
+        const collection = await connectDB();
+
+        // Push new session data into the history array
+        const result = await collection.updateOne(
+            { _id: new ObjectId(id) },
+            {
+                $push: {
+                    history: {
+                        date: new Date(),
+                        ...sessionData
+                    }
+                },
+                $set: { lastActiveAt: new Date() }
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        res.json({ success: true, message: 'Data saved securely to history.' });
+    } catch (error) {
+        console.error('Error saving user data:', error);
         res.status(500).json({ error: error.message });
     }
 });
