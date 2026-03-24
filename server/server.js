@@ -2,11 +2,18 @@ import express from 'express';
 import { MongoClient } from 'mongodb';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config({ path: '../.env' }); // <-- Load the configuration from the parent folder's .env file
+dotenv.config({ path: '../.env' });
+
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// Needed because you are using ES modules (import syntax)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Strip off any extra slashes or collection names the user might have accidentally added in .env
 // We only need the base connection URL (e.g. mongodb://localhost:27017)
@@ -22,9 +29,7 @@ const connectDB = async (retries = 5) => {
   for (let i = 0; i < retries; i++) {
     try {
       await client.connect();
-      // Match the database name EXACTLY as shown in MongoDB Compass
       const db = client.db('Hair-analysis-database');
-      // Match the collection name EXACTLY as shown in MongoDB Compass
       usersCollection = db.collection('Hair-analysis');
       console.log('✅ MongoDB connected! DB: Hair-analysis-database, Collection: Hair-analysis');
       return true;
@@ -85,6 +90,14 @@ app.get('/api/users/count', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// Serve frontend build files
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// For any non-API route, send back React/Vite index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
 app.listen(port, () => {
