@@ -3,6 +3,7 @@ import { MongoClient } from 'mongodb';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 dotenv.config({ path: '../.env' });
@@ -58,17 +59,106 @@ app.post('/api/users', async (req, res) => {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
+    const ageNum = parseInt(age);
+    if (isNaN(ageNum) || ageNum < 1 || ageNum > 100) {
+      return res.status(400).json({ error: 'Age must be between 1 and 100' });
+    }
+
+    // Check if user already exists by email OR phone
+    const existingUser = await usersCollection.findOne({
+      $or: [{ email: email }, { phone: phone }]
+    });
+
+    if (existingUser) {
+      // Case-insensitive name check
+      if (existingUser.name.trim().toLowerCase() !== name.trim().toLowerCase()) {
+        return res.status(400).json({ 
+          error: `A user with this email or phone already exists with a different name (${existingUser.name}).` 
+        });
+      }
+
+      return res.json({ 
+        success: true, 
+        id: existingUser._id, 
+        isReturning: true,
+        history: existingUser.history || []
+      });
+    }
+
     const result = await usersCollection.insertOne({
       name,
       email,
       phone,
-      age: parseInt(age),
+      age: ageNum,
       createdAt: new Date(),
+      history: []
     });
 
-    res.json({ success: true, id: result.insertedId });
+    res.json({ success: true, id: result.insertedId, isReturning: false });
   } catch (error) {
     console.error('Error saving user:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { sessionId, ...sessionData } = req.body;
+    const { ObjectId } = await import('mongodb');
+
+    if (sessionId) {
+      // Try to find and update existing session in history
+      const user = await usersCollection.findOne({ _id: new ObjectId(id) });
+      if (user && user.history) {
+        const sessionIndex = user.history.findIndex(h => h.sessionId === sessionId);
+        
+        if (sessionIndex !== -1) {
+          // Update existing session
+          const updateQuery = {};
+          updateQuery[`history.${sessionIndex}`] = {
+            ...user.history[sessionIndex],
+            ...sessionData,
+            lastUpdated: new Date()
+          };
+
+          await usersCollection.updateOne(
+            { _id: new ObjectId(id) },
+            { 
+              $set: {
+                ...updateQuery,
+                lastActiveAt: new Date()
+              }
+            }
+          );
+          console.log(`Updated session ${sessionId} for user ${id}`);
+          return res.json({ success: true, updated: true });
+        }
+      }
+    }
+
+    // If no sessionId or session not found, push new entry
+    const result = await usersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { 
+        $push: { 
+          history: {
+            sessionId: sessionId || Date.now().toString(),
+            ...sessionData,
+            date: new Date()
+          }
+        },
+        $set: { lastActiveAt: new Date() }
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ success: true, added: true });
+  } catch (error) {
+    console.error('Error updating user history:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -93,12 +183,20 @@ app.get('/api/users/count', async (req, res) => {
 });
 
 // Serve frontend build files
-app.use(express.static(path.join(__dirname, '../dist')));
+const distPath = path.join(__dirname, '../dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
 
-// For any non-API route, send back React/Vite index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
-});
+  // For any non-API route, send back React/Vite index.html
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+} else {
+  console.warn('⚠️ Frontend build folder (dist) not found. API mode only.');
+  app.get('/', (req, res) => {
+    res.send('API is running. Frontend build not found.');
+  });
+}
 
 app.listen(port, () => {
   console.log(`🚀 Server running on http://localhost:${port}`);
