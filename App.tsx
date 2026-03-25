@@ -30,11 +30,13 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [pastUserHistory, setPastUserHistory] = useState<any[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   const saveFullUserProfile = useCallback(async (
     rec: SkincareRoutine | null,
     title: string,
-    chat: ChatMessage[] = []
+    chat: ChatMessage[] = [],
+    sId: string | null = sessionId
   ) => {
     if (!userId) return;
     try {
@@ -42,6 +44,7 @@ const App: React.FC = () => {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          sessionId: sId,
           hairProfileData,
           analysisResult,
           haircareGoals,
@@ -53,7 +56,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error saving full profile:', error);
     }
-  }, [userId, hairProfileData, analysisResult, haircareGoals]);
+  }, [userId, hairProfileData, analysisResult, haircareGoals, sessionId]);
 
   const handleNextStep = () => setStep(prev => prev + 1);
   const handlePrevStep = () => setStep(prev => prev - 1);
@@ -182,6 +185,7 @@ const App: React.FC = () => {
             setIsLoading={setIsLoading}
             isLoading={isLoading}
             saveFullUserProfile={saveFullUserProfile}
+            setSessionId={setSessionId}
           />
         );
       case 6:
@@ -222,6 +226,7 @@ const App: React.FC = () => {
             setChatHistory={setChatHistory}
             onBack={handlePrevStep}
             onReset={resetState}
+            saveFullUserProfile={saveFullUserProfile}
           />
         );
       default:
