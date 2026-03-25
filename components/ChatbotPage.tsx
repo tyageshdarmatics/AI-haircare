@@ -13,6 +13,7 @@ interface ChatbotPageProps {
   chatHistory: ChatMessage[];
   setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   pastUserHistory?: any[];
+  saveFullUserProfile?: (rec: SkincareRoutine | null, title: string, chat: ChatMessage[]) => Promise<void>;
 }
 
 const ChatbotPage: React.FC<ChatbotPageProps> = ({
@@ -24,6 +25,7 @@ const ChatbotPage: React.FC<ChatbotPageProps> = ({
   chatHistory,
   setChatHistory,
   pastUserHistory,
+  saveFullUserProfile,
 }) => {
   return (
     <div className="animate-fade-in-up flex flex-col w-full h-full bg-white rounded-2xl border-2 border-slate-300">
@@ -45,6 +47,8 @@ const ChatbotPage: React.FC<ChatbotPageProps> = ({
             chatHistory={chatHistory}
             setChatHistory={setChatHistory}
             pastUserHistory={pastUserHistory}
+            saveFullUserProfile={saveFullUserProfile}
+            routineTitle={recommendation ? 'Your Plan' : ''} // or pass routineTitle if available
           />
         </div>
       </div>
