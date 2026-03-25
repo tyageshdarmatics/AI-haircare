@@ -1,10 +1,12 @@
 {
-  "name": "3copy-of-ai-haircare-advisor",
+  "name": "ai-haircare-advisor",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm run dev-client\" \"npm run dev-server\"",
+    "dev-client": "vite",
+    "dev-server": "cd server && npm run dev",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -21,6 +23,7 @@
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "baseline-browser-mapping": "^2.10.0",
+    "concurrently": "^8.2.2",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
