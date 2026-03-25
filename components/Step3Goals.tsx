@@ -16,7 +16,8 @@ interface Step3Props {
   setStep: (step: number) => void;
   setIsLoading: (loading: boolean) => void;
   isLoading: boolean;
-  saveFullUserProfile?: (rec: SkincareRoutine | null, title: string) => Promise<void>;
+  saveFullUserProfile?: (rec: SkincareRoutine | null, title: string, chat?: any[], sId?: string | null) => Promise<void>;
+  setSessionId?: (id: string) => void;
 }
 
 const EXTENDED_LOADING_TIPS: string[] = [
@@ -106,7 +107,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ tips, title }) => {
 
 const Step3Goals: React.FC<Step3Props> = ({
   onBack, analysisResult, haircareGoals, setHaircareGoals, pastProducts,
-  setRecommendation, setRoutineTitle, setStep, setIsLoading, isLoading, saveFullUserProfile
+  setRecommendation, setRoutineTitle, setStep, setIsLoading, isLoading, saveFullUserProfile, setSessionId
 }) => {
   const [customGoal, setCustomGoal] = useState('');
 
@@ -166,8 +167,10 @@ const Step3Goals: React.FC<Step3Props> = ({
       const { recommendation, title } = await generateRoutine(pastProducts, analysisResult || [], goalsForApi);
       setRecommendation(recommendation);
       setRoutineTitle(title);
+      const newSessionId = Date.now().toString();
+      if (setSessionId) setSessionId(newSessionId);
       if (saveFullUserProfile) {
-        await saveFullUserProfile(recommendation, title);
+        await saveFullUserProfile(recommendation, title, [], newSessionId);
       }
       setStep(6);
     } catch (error) {
