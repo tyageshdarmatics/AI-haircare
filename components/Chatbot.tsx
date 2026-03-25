@@ -153,6 +153,27 @@ const Chatbot: React.FC<ChatbotProps> = ({ analysisResult, haircareGoals, recomm
     }
   };
 
+  const renderMarkdown = (text: string) => {
+    // Simple markdown-to-html converter
+    // 1. Bold: **text** -> <strong>text</strong>
+    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // 2. Line breaks: \n -> <br />
+    // But handle paragraphs/lists if possible
+    html = html.split('\n').map(line => {
+      line = line.trim();
+      if (line.startsWith('* ') || line.startsWith('- ')) {
+        return `<li>${line.substring(2)}</li>`;
+      }
+      return line ? `<p>${line}</p>` : '';
+    }).join('');
+
+    // Wrap list items
+    html = html.replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
+    
+    return { __html: html };
+  };
+
   return (
     <div className="flex flex-col h-full w-full">
       <div className="flex-grow overflow-y-auto p-4 bg-white rounded-lg border border-slate-200 shadow-inner-soft mb-4 flex flex-col space-y-4">
@@ -160,7 +181,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ analysisResult, haircareGoals, recomm
           <div key={message.id} className={`flex items-start gap-3 ${message.sender === 'user' ? 'justify-end' : 'animate-fade-in-up'}`}>
             {message.sender === 'ai' && <div className="p-1.5 bg-slate-200 rounded-full mt-1 flex-shrink-0"><BotMessageSquare className="w-5 h-5 text-blue-600" /></div>}
             <div className={`rounded-xl px-4 py-2 max-w-md shadow-sm ${message.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200'}`}>
-              <p className="text-sm sm:text-base whitespace-pre-wrap">{message.text}</p>
+              <div 
+                className="text-sm sm:text-base markdown-content"
+                dangerouslySetInnerHTML={renderMarkdown(message.text)}
+              />
             </div>
             {message.sender === 'user' && <div className="p-1.5 bg-slate-200 rounded-full mt-1 flex-shrink-0"><User className="w-5 h-5 text-slate-600" /></div>}
           </div>
