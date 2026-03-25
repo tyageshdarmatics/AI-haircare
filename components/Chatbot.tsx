@@ -12,12 +12,14 @@ interface ChatbotProps {
   chatHistory: ChatMessage[];
   setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   pastUserHistory?: any[];
+  saveFullUserProfile?: (rec: SkincareRoutine | null, title: string, chat: ChatMessage[]) => Promise<void>;
+  routineTitle?: string;
 }
 
 const rawApiKeys = (import.meta.env?.VITE_API_KEY as string | undefined) ?? process.env?.API_KEY;
 const chatApiKeys = rawApiKeys ? rawApiKeys.split(',').map(k => k.trim()).filter(Boolean) : [];
 
-const Chatbot: React.FC<ChatbotProps> = ({ analysisResult, haircareGoals, recommendation, chatHistory, setChatHistory, pastUserHistory }) => {
+const Chatbot: React.FC<ChatbotProps> = ({ analysisResult, haircareGoals, recommendation, chatHistory, setChatHistory, pastUserHistory, saveFullUserProfile, routineTitle }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const chatRef = useRef<Chat | null>(null);
@@ -109,10 +111,16 @@ const Chatbot: React.FC<ChatbotProps> = ({ analysisResult, haircareGoals, recomm
         msg.id === aiMessageId ? { ...msg, text: text + '▌' } : msg
       ));
     }
-    setChatHistory(prev => prev.map(msg =>
-      msg.id === aiMessageId ? { ...msg, text } : msg
-    ));
-  }
+    setChatHistory(prev => {
+      const finalHistory = prev.map(msg =>
+        msg.id === aiMessageId ? { ...msg, text } : msg
+      );
+      if (saveFullUserProfile) {
+        saveFullUserProfile(recommendation, routineTitle || 'Your Plan', finalHistory);
+      }
+      return finalHistory;
+    });
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
