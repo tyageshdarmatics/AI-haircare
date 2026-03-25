@@ -48,7 +48,7 @@ const Step1Start: React.FC<Step1StartProps> = ({ onNext, setHairProfileData, hai
         if (!value.trim()) return 'Age is required.';
         const ageNum = Number(value);
         if (isNaN(ageNum) || !Number.isInteger(ageNum)) return 'Please enter a valid age.';
-        if (ageNum < 10 || ageNum > 100) return 'Please enter an age between 10 and 100.';
+        if (ageNum < 1 || ageNum > 100) return 'Please enter an age between 1 and 100.';
         return '';
       }
       default:
@@ -153,7 +153,7 @@ const Step1Start: React.FC<Step1StartProps> = ({ onNext, setHairProfileData, hai
                 onBlur={handleBlur}
                 required
                 disabled={isSubmitting}
-                min="10"
+                min="1"
                 max="100"
                 className={errors.age ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50' : ''}
               />
