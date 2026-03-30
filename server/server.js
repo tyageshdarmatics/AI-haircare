@@ -6,15 +6,19 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-dotenv.config({ path: '../.env' });
+// Needed because you are using ES modules (import syntax)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 // Needed because you are using ES modules (import syntax)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 // Strip off any extra slashes or collection names the user might have accidentally added in .env
 // We only need the base connection URL (e.g. mongodb://localhost:27017)
@@ -72,14 +76,14 @@ app.post('/api/users', async (req, res) => {
     if (existingUser) {
       // Case-insensitive name check
       if (existingUser.name.trim().toLowerCase() !== name.trim().toLowerCase()) {
-        return res.status(400).json({ 
-          error: `A user with this email or phone already exists with a different name (${existingUser.name}).` 
+        return res.status(400).json({
+          error: `A user with this email or phone already exists with a different name (${existingUser.name}).`
         });
       }
 
-      return res.json({ 
-        success: true, 
-        id: existingUser._id, 
+      return res.json({
+        success: true,
+        id: existingUser._id,
         isReturning: true,
         history: existingUser.history || []
       });
@@ -112,7 +116,7 @@ app.put('/api/users/:id', async (req, res) => {
       const user = await usersCollection.findOne({ _id: new ObjectId(id) });
       if (user && user.history) {
         const sessionIndex = user.history.findIndex(h => h.sessionId === sessionId);
-        
+
         if (sessionIndex !== -1) {
           // Update existing session
           const updateQuery = {};
@@ -124,7 +128,7 @@ app.put('/api/users/:id', async (req, res) => {
 
           await usersCollection.updateOne(
             { _id: new ObjectId(id) },
-            { 
+            {
               $set: {
                 ...updateQuery,
                 lastActiveAt: new Date()
@@ -140,8 +144,8 @@ app.put('/api/users/:id', async (req, res) => {
     // If no sessionId or session not found, push new entry
     const result = await usersCollection.updateOne(
       { _id: new ObjectId(id) },
-      { 
-        $push: { 
+      {
+        $push: {
           history: {
             sessionId: sessionId || Date.now().toString(),
             ...sessionData,
